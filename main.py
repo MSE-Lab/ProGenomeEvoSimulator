@@ -12,7 +12,7 @@ from analysis.ani_calculator import ANICalculator
 
 def run_evolution_simulation(generations: int = 1000,
                            initial_gene_count: int = 3000,
-                           mutation_rate: float = 1e-9,
+                           mutation_rate: float = 1e-8,
                            hgt_rate: float = 0.001,
                            recombination_rate: float = 1e-6):
     """运行进化模拟"""

@@ -23,7 +23,7 @@ def run_demo():
     # 1. Create initial genome with realistic gene length distribution
     print("1. Creating initial genome with realistic gene length distribution...")
     initial_genome = create_initial_genome(
-        gene_count=100,           # 100 genes for demo
+        gene_count=500,           # 500 genes for demo
         avg_gene_length=1000,     # realistic average 1000bp
         min_gene_length=100       # minimum 100bp
     )
