@@ -298,18 +298,3 @@ EnhancedHomologousRecombination(
 - **内存管理**: 优化大规模模拟的内存使用
 - **并行计算**: 支持多核并行处理 (计划中)
 
-## 📄 许可证
-
-本项目采用MIT许可证，详见LICENSE文件。
-
-## 🤝 贡献
-
-欢迎提交Issue和Pull Request来改进模拟器功能！
-
-## 📞 联系方式
-
-如有问题或建议，请通过GitHub Issues联系。
-
----
-
-**Molecular Evolution Simulator** - 让分子进化理论在计算机中重现！ 🧬
