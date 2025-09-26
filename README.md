@@ -312,4 +312,4 @@ EnhancedHomologousRecombination(
 
 ---
 
-**Molecular Evolution Simulator** - 让分子进化理论在计算机中重现！ 🧬✨
+**Molecular Evolution Simulator** - 让分子进化理论在计算机中重现！ 🧬
