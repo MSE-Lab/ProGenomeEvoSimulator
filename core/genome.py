@@ -201,6 +201,7 @@ def generate_biologically_correct_gene(target_length: int, min_length: int = 150
     2. 以起始密码子开始（ATG）
     3. 以终止密码子结束（TAA/TAG/TGA）
     4. 中间序列由有效密码子组成
+    5. 确保最小功能长度（至少50个密码子 = 150bp）
     
     Args:
         target_length: 目标基因长度
@@ -209,6 +210,10 @@ def generate_biologically_correct_gene(target_length: int, min_length: int = 150
     Returns:
         生物学上正确的基因序列
     """
+    # 确保最小长度符合生物学要求（至少50个密码子）
+    absolute_min_length = 150  # 50个密码子的最小功能基因
+    min_length = max(min_length, absolute_min_length)
+    
     # 确保长度是3的倍数且不小于最小长度
     if target_length < min_length:
         target_length = min_length
@@ -216,29 +221,50 @@ def generate_biologically_correct_gene(target_length: int, min_length: int = 150
     # 调整到最近的3的倍数
     target_length = ((target_length + 2) // 3) * 3
     
-    # 确保至少有起始密码子 + 终止密码子 + 至少一个编码密码子
-    if target_length < 9:  # 3 + 3 + 3 = 9
-        target_length = 9
+    # 确保至少有起始密码子 + 终止密码子 + 至少48个编码密码子 = 150bp
+    if target_length < absolute_min_length:
+        target_length = absolute_min_length
     
     # 计算需要的密码子数量
     total_codons = target_length // 3
     
+    # 生物学检查：确保有足够的编码密码子
+    if total_codons < 50:  # 少于50个密码子的基因在原核生物中极其罕见
+        total_codons = 50
+        target_length = 150
+    
     # 构建基因序列
     sequence_parts = []
     
-    # 1. 起始密码子（必须是ATG）
-    sequence_parts.append(random.choice(START_CODONS))
+    # 1. 起始密码子（在原核生物中99%是ATG）
+    sequence_parts.append('ATG')  # 使用最常见的起始密码子
     
     # 2. 编码区域（中间的密码子）
     coding_codons_needed = total_codons - 2  # 减去起始和终止密码子
+    
+    # 确保至少有48个编码密码子
+    if coding_codons_needed < 48:
+        coding_codons_needed = 48
+        total_codons = 50
+    
     for _ in range(coding_codons_needed):
         sequence_parts.append(generate_random_codon(exclude_start_stop=True))
     
-    # 3. 终止密码子
-    sequence_parts.append(random.choice(STOP_CODONS))
+    # 3. 终止密码子（使用生物学上合理的分布）
+    # TAA (琥珀): ~60%, TAG (琥珀): ~20%, TGA (蛋白石): ~20%
+    stop_codon_weights = {'TAA': 0.6, 'TAG': 0.2, 'TGA': 0.2}
+    stop_codons = list(stop_codon_weights.keys())
+    weights = list(stop_codon_weights.values())
+    selected_stop = np.random.choice(stop_codons, p=weights)
+    sequence_parts.append(selected_stop)
     
     # 组合成完整序列
     gene_sequence = ''.join(sequence_parts)
+    
+    # 最终验证
+    if len(gene_sequence) % 3 != 0 or len(gene_sequence) < absolute_min_length:
+        # 如果出现问题，递归重新生成
+        return generate_biologically_correct_gene(target_length, min_length)
     
     return gene_sequence
 

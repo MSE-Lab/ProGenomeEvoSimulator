@@ -14,11 +14,11 @@ class GeneLossEngine:
     """基因丢失引擎 - 模拟基因删除和基因组精简"""
     
     def __init__(self, 
-                 loss_rate: float = 1e-6,
-                 core_gene_protection: float = 0.95,
-                 hgt_gene_loss_multiplier: float = 10.0,
-                 min_genome_size: int = 1000,
-                 min_core_genes: int = 800,
+                 loss_rate: float = 1e-7,  # 修正：更低的基础丢失率
+                 core_gene_protection: float = 0.98,  # 修正：更强的核心基因保护
+                 hgt_gene_loss_multiplier: float = 20.0,  # 修正：HGT基因更容易丢失
+                 min_genome_size: int = 1200,  # 修正：更合理的最小基因组大小
+                 min_core_genes: int = 1000,  # 修正：更多的必需核心基因
                  enable_size_pressure: bool = True,
                  optimal_genome_size: int = 3000):
         """

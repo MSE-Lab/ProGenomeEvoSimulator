@@ -34,11 +34,11 @@ class EnhancedHomologousRecombination:
     
     def __init__(self, 
                  recombination_rate: float = 1e-6,
-                 min_similarity: float = 0.7,
+                 min_similarity: float = 0.85,  # 修正：更严格的相似度要求
                  enable_recombination_hotspots: bool = True,
                  enable_gene_conversion: bool = True,
                  enable_functional_protection: bool = True,
-                 chi_site_enhancement: float = 10.0):
+                 chi_site_enhancement: float = 5.0):  # 修正：更合理的Chi位点增强
         
         self.recombination_rate = recombination_rate
         self.min_similarity = min_similarity

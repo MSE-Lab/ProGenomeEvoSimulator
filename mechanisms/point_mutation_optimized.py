@@ -9,9 +9,9 @@ class OptimizedPointMutationEngine:
     def __init__(self, 
                  mutation_rate: float = 1e-9,
                  enable_transition_bias: bool = True,
-                 transition_transversion_ratio: float = 2.0,
+                 transition_transversion_ratio: float = 2.8,  # 修正：更真实的Ti/Tv比率
                  enable_hotspots: bool = True,
-                 hotspot_multiplier: float = 5.0,
+                 hotspot_multiplier: float = 3.0,  # 修正：更合理的热点增强倍数
                  hotspot_motifs: Optional[List[str]] = None):
         """
         Initialize optimized point mutation engine

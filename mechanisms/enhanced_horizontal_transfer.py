@@ -29,11 +29,11 @@ class EnhancedHorizontalGeneTransfer:
     """增强的横向基因转移引擎"""
     
     def __init__(self, 
-                 hgt_rate: float = 0.001,
+                 hgt_rate: float = 1e-5,  # 修正：更真实的HGT率
                  gene_pool_size: int = 10000,
                  enable_transfer_barriers: bool = True,
                  enable_metabolic_integration: bool = True,
-                 gc_content_tolerance: float = 0.15):
+                 gc_content_tolerance: float = 0.10):  # 修正：更严格的GC含量容忍度
         
         self.hgt_rate = hgt_rate
         self.gene_pool_size = gene_pool_size

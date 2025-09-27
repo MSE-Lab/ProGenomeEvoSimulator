@@ -53,12 +53,12 @@ def create_test_configurations() -> Dict[str, Dict[str, any]]:
     configs = {
         'fast_test': {
             'name': '快速测试',
-            'description': '高参数值，快速观察进化效果',
+            'description': '适度提高参数值，快速观察进化效果',
             'params': {
-                'mutation_rate': 1e-4,
-                'hgt_rate': 0.05,
-                'recombination_rate': 1e-2,
-                'loss_rate': 1e-4,
+                'mutation_rate': 1e-5,  # 修正：降低到更合理的水平
+                'hgt_rate': 1e-4,       # 修正：大幅降低HGT率
+                'recombination_rate': 1e-5,  # 修正：降低重组率
+                'loss_rate': 1e-6,      # 修正：降低丢失率
                 'enable_gene_loss': True,
                 'enable_parallel': True,
                 'enable_optimization': True
@@ -69,12 +69,12 @@ def create_test_configurations() -> Dict[str, Dict[str, any]]:
         
         'realistic': {
             'name': '真实参数',
-            'description': '接近真实原核生物的进化参数',
+            'description': '基于文献的真实原核生物进化参数',
             'params': {
-                'mutation_rate': 1e-6,
-                'hgt_rate': 1e-5,
-                'recombination_rate': 1e-6,
-                'loss_rate': 1e-6,
+                'mutation_rate': 1e-9,   # 修正：每bp每代的真实突变率
+                'hgt_rate': 1e-6,        # 修正：更真实的HGT率
+                'recombination_rate': 1e-8,  # 修正：更真实的重组率
+                'loss_rate': 1e-8,       # 修正：更真实的丢失率
                 'enable_gene_loss': True,
                 'enable_parallel': True,
                 'enable_optimization': True
@@ -85,12 +85,12 @@ def create_test_configurations() -> Dict[str, Dict[str, any]]:
         
         'large_scale': {
             'name': '大规模模拟',
-            'description': '大基因组，长时间进化',
+            'description': '大基因组，长时间进化（生物学合理参数）',
             'params': {
-                'mutation_rate': 1e-5,
-                'hgt_rate': 0.01,
-                'recombination_rate': 1e-3,
-                'loss_rate': 1e-5,
+                'mutation_rate': 1e-8,   # 修正：适中的突变率
+                'hgt_rate': 1e-5,        # 修正：大幅降低HGT率
+                'recombination_rate': 1e-7,  # 修正：降低重组率
+                'loss_rate': 1e-7,       # 修正：适中的丢失率
                 'enable_gene_loss': True,
                 'enable_parallel': True,
                 'enable_optimization': True
@@ -103,9 +103,9 @@ def create_test_configurations() -> Dict[str, Dict[str, any]]:
             'name': '无基因丢失对照',
             'description': '关闭基因丢失功能的对照实验',
             'params': {
-                'mutation_rate': 1e-4,
-                'hgt_rate': 0.02,
-                'recombination_rate': 1e-2,
+                'mutation_rate': 1e-6,   # 修正：降低突变率
+                'hgt_rate': 1e-5,        # 修正：大幅降低HGT率
+                'recombination_rate': 1e-6,  # 修正：降低重组率
                 'enable_gene_loss': False,
                 'enable_parallel': True,
                 'enable_optimization': True
@@ -118,10 +118,10 @@ def create_test_configurations() -> Dict[str, Dict[str, any]]:
             'name': '串行处理',
             'description': '关闭并行处理的性能对比',
             'params': {
-                'mutation_rate': 1e-4,
-                'hgt_rate': 0.02,
-                'recombination_rate': 1e-2,
-                'loss_rate': 1e-4,
+                'mutation_rate': 1e-6,   # 修正：降低突变率
+                'hgt_rate': 1e-5,        # 修正：大幅降低HGT率
+                'recombination_rate': 1e-6,  # 修正：降低重组率
+                'loss_rate': 1e-7,       # 修正：降低丢失率
                 'enable_gene_loss': True,
                 'enable_parallel': False,
                 'enable_optimization': True
