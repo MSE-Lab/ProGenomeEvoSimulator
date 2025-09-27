@@ -1,213 +1,131 @@
 #!/usr/bin/env python3
 """
-原核生物基因组进化模拟器
-主程序入口
+ProGenomeEvoSimulator - 原核生物基因组进化模拟器
+主程序入口 - 使用统一进化引擎
+
+这是项目的主入口文件，提供简化的接口来运行基因组进化模拟。
+对于更多高级功能，请使用 main_unified.py
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 from core.genome import create_initial_genome
-from core.evolution_engine_with_conservation import OptimizedEvolutionEngine
-from analysis.ani_calculator import ANICalculator
+from core.unified_evolution_engine import UnifiedEvolutionEngine
 
-def run_evolution_simulation(generations: int = 1000,
-                           initial_gene_count: int = 3000,
-                           mutation_rate: float = 1e-8,
-                           hgt_rate: float = 0.001,
-                           recombination_rate: float = 1e-6):
-    """运行进化模拟"""
+
+def run_basic_simulation():
+    """运行基础的进化模拟"""
     
-    print("=" * 60)
-    print("Prokaryotic Genome Evolution Simulator")
+    print("🧬 ProGenomeEvoSimulator - Basic Simulation")
     print("=" * 60)
     
-    # 1. Create initial genome with realistic gene length distribution
-    print("1. Creating initial genome with realistic gene length distribution...")
-    initial_genome = create_initial_genome(
-        gene_count=initial_gene_count,
-        avg_gene_length=1000,
-        min_gene_length=100
+    # 创建初始基因组
+    print("📊 Creating initial genome...")
+    np.random.seed(42)  # 确保可重复性
+    
+    genome = create_initial_genome(
+        gene_count=2000,
+        avg_gene_length=500,
+        min_gene_length=200
     )
     
-    print(f"   ✓ Genome created with realistic prokaryotic gene length distribution")
-    print()
+    print(f"   Initial genome: {genome.gene_count:,} genes, {genome.size:,} bp")
     
-    # 2. Initialize evolution engine
-    print("2. Initializing evolution engine...")
-    evolution_engine = OptimizedEvolutionEngine(
-        mutation_rate=mutation_rate,
-        hgt_rate=hgt_rate,
-        recombination_rate=recombination_rate
+    # 创建进化引擎（推荐配置）
+    print("⚙️  Initializing evolution engine...")
+    
+    engine = UnifiedEvolutionEngine(
+        # 基本进化参数
+        mutation_rate=1e-5,
+        hgt_rate=0.01,
+        recombination_rate=1e-3,
+        
+        # 基因丢失参数
+        enable_gene_loss=True,
+        loss_rate=1e-5,
+        core_gene_protection=0.95,
+        
+        # 性能优化
+        enable_parallel=True,
+        enable_optimization=True
     )
-    print(f"   Point mutation rate: {mutation_rate}")
-    print(f"   Horizontal gene transfer rate: {hgt_rate}")
-    print(f"   Homologous recombination rate: {recombination_rate}")
-    print()
     
-    # 3. Run evolution simulation
-    print("3. Starting evolution simulation...")
-    evolved_genome, snapshots = evolution_engine.simulate_evolution(
-        initial_genome=initial_genome,
-        generations=generations,
+    # 运行进化模拟
+    print("🚀 Starting evolution simulation...")
+    print("   Generations: 500")
+    print("   Features: All mechanisms enabled (mutations, HGT, recombination, gene loss)")
+    print("   Processing: Parallel optimization enabled")
+    print("=" * 60)
+    
+    final_genome, snapshots = engine.simulate_evolution(
+        initial_genome=genome,
+        generations=500,
         save_snapshots=True,
-        snapshot_interval=100
-    )
-    print()
-    
-    # 4. Calculate ANI and ortholog analysis
-    print("4. Analyzing evolution results...")
-    ani_calculator = ANICalculator()
-    
-    comprehensive_analysis = ani_calculator.compare_genomes_comprehensive(
-        ancestral_genome=initial_genome,
-        evolved_genome=evolved_genome
+        snapshot_interval=50
     )
     
-    # 5. Output results
-    print_analysis_results(comprehensive_analysis, generations)
+    # 显示结果摘要
+    print("\n📈 SIMULATION RESULTS")
+    print("=" * 60)
+    print(f"🧬 Genome Evolution:")
+    print(f"   Initial: {genome.gene_count:,} genes, {genome.size:,} bp")
+    print(f"   Final: {final_genome.gene_count:,} genes, {final_genome.size:,} bp")
+    print(f"   Change: {final_genome.gene_count - genome.gene_count:+,} genes, {final_genome.size - genome.size:+,} bp")
     
-    # 6. Visualize results
-    visualize_results(comprehensive_analysis, snapshots, generations)
+    print(f"\n🔬 Evolution Events:")
+    print(f"   Mutations: {final_genome.total_mutations:,}")
+    print(f"   HGT events: {final_genome.total_hgt_events:,}")
+    print(f"   Recombinations: {final_genome.total_recombination_events:,}")
     
-    return initial_genome, evolved_genome, comprehensive_analysis, snapshots
-
-def print_analysis_results(analysis: dict, generations: int):
-    """Print analysis results"""
+    # 基因丢失统计
+    if engine.gene_loss:
+        loss_stats = engine.gene_loss.get_loss_statistics(final_genome)
+        print(f"   Genes lost: {loss_stats['total_genes_lost']:,}")
+    
+    print(f"\n📊 Analysis:")
+    print(f"   Snapshots saved: {len(snapshots)}")
+    print(f"   Final generation: {final_genome.generation}")
+    
+    # 性能分析
+    perf_analysis = engine.get_performance_analysis()
+    if 'processing_modes' in perf_analysis:
+        modes = perf_analysis['processing_modes']
+        if modes.get('parallel_generations', 0) > 0:
+            print(f"   Parallel processing: {modes['parallel_generations']} generations")
     
     print("=" * 60)
-    print("Evolution Analysis Results")
-    print("=" * 60)
+    print("✅ Simulation completed successfully!")
+    print("\n💡 For more advanced features and options:")
+    print("   - Run 'python main_unified.py' for interactive interface")
+    print("   - Run 'python demo_unified_engine.py' for feature demonstrations")
     
-    # ANI results
-    ani_data = analysis['ani_analysis']
-    print(f"Average Nucleotide Identity (ANI): {ani_data['ani']:.4f}")
-    print(f"Weighted ANI: {ani_data['weighted_ani']:.4f}")
-    print(f"Orthologous gene pairs: {ani_data['ortholog_count']}")
-    print(f"Ortholog ratio: {ani_data['ortholog_ratio']:.4f}")
-    print()
-    
-    # Identity distribution
-    identity_dist = analysis['identity_distribution']
-    print("Orthologous Gene Identity Distribution:")
-    print(f"  Mean: {identity_dist['mean']:.4f}")
-    print(f"  Standard deviation: {identity_dist['std']:.4f}")
-    print(f"  Median: {identity_dist['median']:.4f}")
-    print(f"  Range: {identity_dist['min']:.4f} - {identity_dist['max']:.4f}")
-    print()
-    
-    # Genome composition changes
-    composition = analysis['genome_composition']
-    print("Genome Composition Changes:")
-    print(f"  Ancestral core genes: {composition['ancestral_core_genes']}")
-    print(f"  Evolved core genes: {composition['evolved_core_genes']}")
-    print(f"  HGT acquired genes: {composition['evolved_hgt_genes']}")
-    print(f"  Core gene retention rate: {composition['core_gene_retention']:.4f}")
-    print()
-    
-    # Genome size changes
-    size_changes = analysis['size_changes']
-    print("Genome Size Changes:")
-    print(f"  Initial size: {size_changes['ancestral_size']:,} bp")
-    print(f"  Final size: {size_changes['evolved_size']:,} bp")
-    print(f"  Size change: {size_changes['size_change']:+,} bp ({size_changes['size_change_ratio']:+.2%})")
-    print()
-    
-    # Gene count changes
-    gene_changes = analysis['gene_count_changes']
-    print("Gene Count Changes:")
-    print(f"  Initial gene count: {gene_changes['ancestral_gene_count']}")
-    print(f"  Final gene count: {gene_changes['evolved_gene_count']}")
-    print(f"  Gene count change: {gene_changes['gene_count_change']:+d} ({gene_changes['gene_count_change_ratio']:+.2%})")
-    print()
+    return final_genome, snapshots
 
-def visualize_results(analysis: dict, snapshots: list, generations: int):
-    """Visualize results"""
-    
-    try:
-        # Create figure
-        fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-        fig.suptitle(f'Genome Evolution Simulation Results ({generations} generations)', fontsize=16)
-        
-        # 1. Orthologous gene identity distribution histogram
-        identity_dist = analysis['identity_distribution']
-        if identity_dist['counts']:
-            axes[0, 0].hist(analysis['ani_analysis']['identity_distribution'], 
-                           bins=20, alpha=0.7, color='skyblue', edgecolor='black')
-            axes[0, 0].axvline(identity_dist['mean'], color='red', linestyle='--', 
-                              label=f'Mean: {identity_dist["mean"]:.3f}')
-            axes[0, 0].set_xlabel('Sequence Identity')
-            axes[0, 0].set_ylabel('Number of Gene Pairs')
-            axes[0, 0].set_title('Orthologous Gene Identity Distribution')
-            axes[0, 0].legend()
-            axes[0, 0].grid(True, alpha=0.3)
-        
-        # 2. Genome size changes
-        if len(snapshots) > 1:
-            generations_list = [s.get('snapshot_generation', 0) for s in snapshots]
-            sizes = [s['genome_stats']['total_size'] for s in snapshots]
-            axes[0, 1].plot(generations_list, sizes, 'b-o', markersize=4)
-            axes[0, 1].set_xlabel('Generation')
-            axes[0, 1].set_ylabel('Genome Size (bp)')
-            axes[0, 1].set_title('Genome Size Changes')
-            axes[0, 1].grid(True, alpha=0.3)
-        
-        # 3. Gene count changes
-        if len(snapshots) > 1:
-            gene_counts = [s['genome_stats']['gene_count'] for s in snapshots]
-            core_genes = [s['genome_stats']['core_genes'] for s in snapshots]
-            hgt_genes = [s['genome_stats']['hgt_genes'] for s in snapshots]
-            
-            axes[1, 0].plot(generations_list, gene_counts, 'g-o', label='Total genes', markersize=4)
-            axes[1, 0].plot(generations_list, core_genes, 'b-s', label='Core genes', markersize=4)
-            axes[1, 0].plot(generations_list, hgt_genes, 'r-^', label='HGT genes', markersize=4)
-            axes[1, 0].set_xlabel('Generation')
-            axes[1, 0].set_ylabel('Gene Count')
-            axes[1, 0].set_title('Gene Count Changes')
-            axes[1, 0].legend()
-            axes[1, 0].grid(True, alpha=0.3)
-        
-        # 4. Evolution event accumulation
-        if len(snapshots) > 1:
-            mutations = [s['genome_stats']['total_mutations'] for s in snapshots]
-            hgt_events = [s['genome_stats']['total_hgt_events'] for s in snapshots]
-            recombinations = [s['genome_stats']['total_recombination_events'] for s in snapshots]
-            
-            axes[1, 1].plot(generations_list, mutations, 'purple', label='Point mutations', linewidth=2)
-            axes[1, 1].plot(generations_list, hgt_events, 'orange', label='HGT events', linewidth=2)
-            axes[1, 1].plot(generations_list, recombinations, 'green', label='Recombination events', linewidth=2)
-            axes[1, 1].set_xlabel('Generation')
-            axes[1, 1].set_ylabel('Cumulative Events')
-            axes[1, 1].set_title('Evolution Event Accumulation')
-            axes[1, 1].legend()
-            axes[1, 1].grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.savefig('evolution_simulation_results.png', dpi=300, bbox_inches='tight')
-        plt.show()
-        
-        print("Visualization results saved as 'evolution_simulation_results.png'")
-        
-    except Exception as e:
-        print(f"Error in visualization: {e}")
-        print("Skipping visualization step...")
 
 def main():
-    """Main function"""
+    """主函数"""
     
-    # Set random seed for reproducible results
-    np.random.seed(42)
-    
-    # Run simulation
-    initial_genome, evolved_genome, analysis, snapshots = run_evolution_simulation(
-        generations=100,           # Evolution generations
-        initial_gene_count=3000,    # Initial gene count
-        mutation_rate=1e-5,         # Point mutation rate (slightly increased for observable effects)
-        hgt_rate=0.02,            # HGT rate (slightly increased for observable effects)
-        recombination_rate=1e-3     # Recombination rate (slightly increased for observable effects)
-    )
-    
-    print("\nSimulation completed!")
-    print("You can adjust parameters and re-run the simulation, or analyze the result data.")
+    try:
+        print("🧬 Welcome to ProGenomeEvoSimulator!")
+        print("This is the basic simulation interface.")
+        print("\nStarting simulation with recommended parameters...")
+        
+        final_genome, snapshots = run_basic_simulation()
+        
+        print("\n🎉 Thank you for using ProGenomeEvoSimulator!")
+        
+    except KeyboardInterrupt:
+        print("\n\n👋 Simulation interrupted by user. Goodbye!")
+        
+    except Exception as e:
+        print(f"\n❌ An error occurred: {e}")
+        print("\n💡 Troubleshooting tips:")
+        print("   1. Make sure all dependencies are installed: pip install -r requirements.txt")
+        print("   2. Check that all core modules are present")
+        print("   3. Try running 'python demo_unified_engine.py' for diagnostics")
+        
+        import traceback
+        traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()

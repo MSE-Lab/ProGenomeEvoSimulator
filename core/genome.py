@@ -1,8 +1,19 @@
+"""
+Genome Data Structures and Utilities
+基因组数据结构和工具函数
+
+Version: 1.0.0
+Author: ProGenomeEvoSimulator Team
+Date: 2025-09-27
+"""
+
 import random
 import numpy as np
 from typing import List, Dict, Optional
 from dataclasses import dataclass
 import uuid
+
+__version__ = "1.0.0"
 
 @dataclass
 class Gene:
@@ -122,8 +133,180 @@ class Genome:
         new_genome.total_recombination_events = self.total_recombination_events
         return new_genome
 
+# 遗传密码表 - 标准密码子表
+GENETIC_CODE = {
+    # 起始密码子
+    'ATG': 'M',  # 甲硫氨酸 - 起始密码子
+    
+    # 终止密码子
+    'TAA': '*',  # 终止密码子 (琥珀)
+    'TAG': '*',  # 终止密码子 (琥珀)
+    'TGA': '*',  # 终止密码子 (蛋白石)
+    
+    # 其他密码子
+    'TTT': 'F', 'TTC': 'F',  # 苯丙氨酸
+    'TTA': 'L', 'TTG': 'L', 'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',  # 亮氨酸
+    'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S', 'AGT': 'S', 'AGC': 'S',  # 丝氨酸
+    'TAT': 'Y', 'TAC': 'Y',  # 酪氨酸
+    'TGT': 'C', 'TGC': 'C',  # 半胱氨酸
+    'TGG': 'W',  # 色氨酸
+    'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',  # 脯氨酸
+    'CAT': 'H', 'CAC': 'H',  # 组氨酸
+    'CAA': 'Q', 'CAG': 'Q',  # 谷氨酰胺
+    'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R', 'AGA': 'R', 'AGG': 'R',  # 精氨酸
+    'ATT': 'I', 'ATC': 'I', 'ATA': 'I',  # 异亮氨酸
+    'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',  # 苏氨酸
+    'AAT': 'N', 'AAC': 'N',  # 天冬酰胺
+    'AAA': 'K', 'AAG': 'K',  # 赖氨酸
+    'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',  # 缬氨酸
+    'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',  # 丙氨酸
+    'GAT': 'D', 'GAC': 'D',  # 天冬氨酸
+    'GAA': 'E', 'GAG': 'E',  # 谷氨酸
+    'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G',  # 甘氨酸
+}
+
+# 起始密码子
+START_CODONS = ['ATG']
+
+# 终止密码子
+STOP_CODONS = ['TAA', 'TAG', 'TGA']
+
+# 所有有效密码子（除了起始和终止密码子）
+CODING_CODONS = [codon for codon in GENETIC_CODE.keys() 
+                 if codon not in START_CODONS and codon not in STOP_CODONS]
+
+
+def generate_random_codon(exclude_start_stop: bool = True) -> str:
+    """
+    生成随机密码子
+    
+    Args:
+        exclude_start_stop: 是否排除起始和终止密码子
+    
+    Returns:
+        随机密码子序列
+    """
+    if exclude_start_stop:
+        return random.choice(CODING_CODONS)
+    else:
+        return random.choice(list(GENETIC_CODE.keys()))
+
+
+def generate_biologically_correct_gene(target_length: int, min_length: int = 150) -> str:
+    """
+    生成生物学上正确的基因序列
+    
+    要求:
+    1. 长度必须是3的倍数（密码子）
+    2. 以起始密码子开始（ATG）
+    3. 以终止密码子结束（TAA/TAG/TGA）
+    4. 中间序列由有效密码子组成
+    
+    Args:
+        target_length: 目标基因长度
+        min_length: 最小基因长度
+    
+    Returns:
+        生物学上正确的基因序列
+    """
+    # 确保长度是3的倍数且不小于最小长度
+    if target_length < min_length:
+        target_length = min_length
+    
+    # 调整到最近的3的倍数
+    target_length = ((target_length + 2) // 3) * 3
+    
+    # 确保至少有起始密码子 + 终止密码子 + 至少一个编码密码子
+    if target_length < 9:  # 3 + 3 + 3 = 9
+        target_length = 9
+    
+    # 计算需要的密码子数量
+    total_codons = target_length // 3
+    
+    # 构建基因序列
+    sequence_parts = []
+    
+    # 1. 起始密码子（必须是ATG）
+    sequence_parts.append(random.choice(START_CODONS))
+    
+    # 2. 编码区域（中间的密码子）
+    coding_codons_needed = total_codons - 2  # 减去起始和终止密码子
+    for _ in range(coding_codons_needed):
+        sequence_parts.append(generate_random_codon(exclude_start_stop=True))
+    
+    # 3. 终止密码子
+    sequence_parts.append(random.choice(STOP_CODONS))
+    
+    # 组合成完整序列
+    gene_sequence = ''.join(sequence_parts)
+    
+    return gene_sequence
+
+
+def validate_gene_sequence(sequence: str) -> Dict[str, any]:
+    """
+    验证基因序列的生物学正确性
+    
+    Args:
+        sequence: 基因序列
+    
+    Returns:
+        验证结果字典
+    """
+    validation_result = {
+        'is_valid': True,
+        'errors': [],
+        'warnings': [],
+        'length': len(sequence),
+        'codon_count': len(sequence) // 3,
+        'has_start_codon': False,
+        'has_stop_codon': False,
+        'invalid_codons': []
+    }
+    
+    # 检查长度是否是3的倍数
+    if len(sequence) % 3 != 0:
+        validation_result['is_valid'] = False
+        validation_result['errors'].append(f"序列长度 {len(sequence)} 不是3的倍数")
+    
+    # 检查最小长度
+    if len(sequence) < 9:
+        validation_result['is_valid'] = False
+        validation_result['errors'].append(f"序列长度 {len(sequence)} 小于最小基因长度 9bp")
+    
+    if len(sequence) >= 3:
+        # 检查起始密码子
+        start_codon = sequence[:3]
+        if start_codon in START_CODONS:
+            validation_result['has_start_codon'] = True
+        else:
+            validation_result['is_valid'] = False
+            validation_result['errors'].append(f"起始密码子 '{start_codon}' 无效，应为 {START_CODONS}")
+        
+        # 检查终止密码子
+        if len(sequence) >= 6:
+            stop_codon = sequence[-3:]
+            if stop_codon in STOP_CODONS:
+                validation_result['has_stop_codon'] = True
+            else:
+                validation_result['is_valid'] = False
+                validation_result['errors'].append(f"终止密码子 '{stop_codon}' 无效，应为 {STOP_CODONS}")
+    
+    # 检查所有密码子的有效性
+    for i in range(0, len(sequence), 3):
+        if i + 3 <= len(sequence):
+            codon = sequence[i:i+3]
+            if codon not in GENETIC_CODE:
+                validation_result['is_valid'] = False
+                validation_result['invalid_codons'].append((i//3, codon))
+    
+    return validation_result
+
+
 def generate_random_sequence(length: int, gc_content: float = 0.5) -> str:
-    """生成随机DNA序列"""
+    """
+    生成随机DNA序列（保留用于兼容性，但建议使用generate_biologically_correct_gene）
+    """
     sequence = []
     for _ in range(length):
         if random.random() < gc_content:
@@ -132,15 +315,17 @@ def generate_random_sequence(length: int, gc_content: float = 0.5) -> str:
             sequence.append(random.choice(['A', 'T']))
     return ''.join(sequence)
 
-def generate_realistic_gene_length(target_mean: int = 1000, min_length: int = 100) -> int:
+def generate_realistic_gene_length(target_mean: int = 1000, min_length: int = 150) -> int:
     """
     Generate realistic prokaryotic gene length using gamma distribution
+    确保长度是3的倍数（密码子要求）
     
     Prokaryotic genes typically:
     - Most genes around 1000bp
-    - Few very short genes (100-300bp)
+    - Few very short genes (150-300bp) 
     - Few very long genes (>3000bp)
-    - Minimum functional gene length ~100bp
+    - Minimum functional gene length ~150bp (50 codons)
+    - Length must be multiple of 3 (codon requirement)
     """
     # Use gamma distribution parameters that give realistic prokaryotic gene length distribution
     # Shape parameter (alpha): controls the skewness
@@ -157,52 +342,124 @@ def generate_realistic_gene_length(target_mean: int = 1000, min_length: int = 10
     # Ensure minimum length and reasonable maximum
     length = max(min_length, min(length, 8000))  # Cap at 8kb for very long genes
     
+    # 确保长度是3的倍数（密码子要求）
+    length = ((length + 2) // 3) * 3
+    
+    # 确保最小长度（至少包含起始密码子 + 1个编码密码子 + 终止密码子 = 9bp）
+    if length < 9:
+        length = 9
+    
     return length
 
 def create_initial_genome(gene_count: int = 3000, 
                          avg_gene_length: int = 1000,
-                         min_gene_length: int = 100) -> Genome:
+                         min_gene_length: int = 150,
+                         use_biological_sequences: bool = True) -> Genome:
     """
     Create initial genome with realistic prokaryotic gene length distribution
+    现在生成生物学上正确的基因序列
     
     Args:
         gene_count: Number of genes in the genome
-        avg_gene_length: Target average gene length (bp)
-        min_gene_length: Minimum gene length (bp)
+        avg_gene_length: Target average gene length (bp, will be adjusted to multiple of 3)
+        min_gene_length: Minimum gene length (bp, will be adjusted to multiple of 3)
+        use_biological_sequences: Whether to generate biologically correct gene sequences
     """
     genes = []
     current_pos = 0
     
-    print(f"Generating {gene_count:,} genes with realistic length distribution...")
-    print(f"Target average length: {avg_gene_length} bp, minimum: {min_gene_length} bp")
+    # 确保参数是3的倍数
+    avg_gene_length = ((avg_gene_length + 2) // 3) * 3
+    min_gene_length = max(9, ((min_gene_length + 2) // 3) * 3)  # 最小9bp（3个密码子）
+    
+    print(f"🧬 Generating {gene_count:,} biologically correct genes...")
+    print(f"📊 Parameters:")
+    print(f"   Target average length: {avg_gene_length} bp (adjusted to codon multiple)")
+    print(f"   Minimum length: {min_gene_length} bp (adjusted to codon multiple)")
+    print(f"   Biological sequences: {'Enabled' if use_biological_sequences else 'Disabled'}")
+    print(f"   Features: Start codons, stop codons, valid codon sequences")
     
     gene_lengths = []
+    validation_stats = {
+        'valid_genes': 0,
+        'invalid_genes': 0,
+        'total_codons': 0,
+        'start_codon_distribution': {},
+        'stop_codon_distribution': {}
+    }
+    
     for i in range(gene_count):
-        # Use realistic gene length distribution
-        length = generate_realistic_gene_length(avg_gene_length, min_gene_length)
-        gene_lengths.append(length)
+        # Use realistic gene length distribution (ensures multiple of 3)
+        target_length = generate_realistic_gene_length(avg_gene_length, min_gene_length)
+        gene_lengths.append(target_length)
         
-        sequence = generate_random_sequence(length)
+        if use_biological_sequences:
+            # Generate biologically correct gene sequence
+            sequence = generate_biologically_correct_gene(target_length, min_gene_length)
+            
+            # Validate the generated sequence
+            validation = validate_gene_sequence(sequence)
+            if validation['is_valid']:
+                validation_stats['valid_genes'] += 1
+                validation_stats['total_codons'] += validation['codon_count']
+                
+                # Track start and stop codon usage
+                start_codon = sequence[:3]
+                stop_codon = sequence[-3:]
+                
+                validation_stats['start_codon_distribution'][start_codon] = \
+                    validation_stats['start_codon_distribution'].get(start_codon, 0) + 1
+                validation_stats['stop_codon_distribution'][stop_codon] = \
+                    validation_stats['stop_codon_distribution'].get(stop_codon, 0) + 1
+            else:
+                validation_stats['invalid_genes'] += 1
+                print(f"⚠️  Warning: Generated invalid gene {i}: {validation['errors']}")
+        else:
+            # Generate random sequence (for compatibility)
+            sequence = generate_random_sequence(target_length)
         
         gene = Gene(
             id=f"gene_{i:04d}",
             sequence=sequence,
             start_pos=current_pos,
-            length=length,
+            length=len(sequence),  # Use actual sequence length
             is_core=True,
             origin="ancestral"
         )
         genes.append(gene)
-        current_pos += length
+        current_pos += len(sequence)
     
     # Print distribution statistics
     gene_lengths = np.array(gene_lengths)
-    print(f"✓ Generated genome statistics:")
-    print(f"  - Total size: {current_pos:,} bp")
-    print(f"  - Actual average gene length: {gene_lengths.mean():.1f} bp")
-    print(f"  - Gene length range: {gene_lengths.min()}-{gene_lengths.max()} bp")
-    print(f"  - Genes <500bp: {np.sum(gene_lengths < 500):,} ({np.sum(gene_lengths < 500)/len(gene_lengths)*100:.1f}%)")
-    print(f"  - Genes 500-1500bp: {np.sum((gene_lengths >= 500) & (gene_lengths <= 1500)):,} ({np.sum((gene_lengths >= 500) & (gene_lengths <= 1500))/len(gene_lengths)*100:.1f}%)")
-    print(f"  - Genes >1500bp: {np.sum(gene_lengths > 1500):,} ({np.sum(gene_lengths > 1500)/len(gene_lengths)*100:.1f}%)")
+    actual_lengths = np.array([len(gene.sequence) for gene in genes])
+    
+    print(f"\n✓ Generated genome statistics:")
+    print(f"  📏 Size and Length:")
+    print(f"     Total size: {current_pos:,} bp")
+    print(f"     Target avg length: {gene_lengths.mean():.1f} bp")
+    print(f"     Actual avg length: {actual_lengths.mean():.1f} bp")
+    print(f"     Length range: {actual_lengths.min()}-{actual_lengths.max()} bp")
+    
+    print(f"  📊 Length Distribution:")
+    print(f"     Genes <500bp: {np.sum(actual_lengths < 500):,} ({np.sum(actual_lengths < 500)/len(actual_lengths)*100:.1f}%)")
+    print(f"     Genes 500-1500bp: {np.sum((actual_lengths >= 500) & (actual_lengths <= 1500)):,} ({np.sum((actual_lengths >= 500) & (actual_lengths <= 1500))/len(actual_lengths)*100:.1f}%)")
+    print(f"     Genes >1500bp: {np.sum(actual_lengths > 1500):,} ({np.sum(actual_lengths > 1500)/len(actual_lengths)*100:.1f}%)")
+    
+    if use_biological_sequences:
+        print(f"  🧬 Biological Validation:")
+        print(f"     Valid genes: {validation_stats['valid_genes']:,}/{gene_count:,} ({validation_stats['valid_genes']/gene_count*100:.1f}%)")
+        print(f"     Total codons: {validation_stats['total_codons']:,}")
+        print(f"     Avg codons per gene: {validation_stats['total_codons']/validation_stats['valid_genes']:.1f}")
+        
+        print(f"  🎯 Codon Usage:")
+        print(f"     Start codons: {dict(validation_stats['start_codon_distribution'])}")
+        print(f"     Stop codons: {dict(validation_stats['stop_codon_distribution'])}")
+        
+        # Verify all genes have correct length (multiple of 3)
+        non_codon_genes = [gene for gene in genes if len(gene.sequence) % 3 != 0]
+        if non_codon_genes:
+            print(f"  ⚠️  Warning: {len(non_codon_genes)} genes have non-codon lengths!")
+        else:
+            print(f"  ✅ All genes have codon-compatible lengths (multiples of 3)")
     
     return Genome(genes)

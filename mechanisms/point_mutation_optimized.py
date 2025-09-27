@@ -116,13 +116,16 @@ class OptimizedPointMutationEngine:
         
         hotspot_positions = set()
         sequence = gene.sequence
+        sequence_length = len(sequence)
         
         for motif in self.hotspot_motifs:
             motif_len = len(motif)
-            for i in range(len(sequence) - motif_len + 1):
-                if sequence[i:i + motif_len] == motif:
-                    # Add all positions within the motif
-                    hotspot_positions.update(range(i, i + motif_len))
+            # 确保不会超出序列边界
+            for i in range(max(0, sequence_length - motif_len + 1)):
+                if i + motif_len <= sequence_length and sequence[i:i + motif_len] == motif:
+                    # Add all positions within the motif, 确保不超出基因长度
+                    motif_positions = range(i, min(i + motif_len, sequence_length))
+                    hotspot_positions.update(motif_positions)
         
         # Cache the result
         self._hotspot_cache[cache_key] = hotspot_positions
@@ -136,9 +139,12 @@ class OptimizedPointMutationEngine:
         if self.enable_hotspots:
             hotspot_positions = self._find_hotspot_positions_cached(gene)
             if hotspot_positions:
-                # Convert to numpy array for vectorized operations
-                hotspot_array = np.array(list(hotspot_positions))
-                rates[hotspot_array] *= self.hotspot_multiplier
+                # 过滤掉超出基因长度的位置，防止索引越界
+                valid_positions = [pos for pos in hotspot_positions if pos < gene.length]
+                if valid_positions:
+                    # Convert to numpy array for vectorized operations
+                    hotspot_array = np.array(valid_positions)
+                    rates[hotspot_array] *= self.hotspot_multiplier
         
         return rates
     

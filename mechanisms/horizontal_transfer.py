@@ -55,6 +55,8 @@ class HorizontalGeneTransfer:
         try:
             # 随机选择插入位置
             if genome.genes:
+                # 修复索引越界问题：插入位置应该在0到len(genome.genes)之间（包括len）
+                # insert()方法允许在末尾插入，所以这里是正确的
                 insert_position = random.randint(0, len(genome.genes))
                 genome.genes.insert(insert_position, donor_gene)
             else:
