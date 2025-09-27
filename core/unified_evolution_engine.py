@@ -47,7 +47,7 @@ class UnifiedEvolutionEngine:
                  mutation_rate: float = 1e-6,
                  hgt_rate: float = 1e-8,
                  recombination_rate: float = 1e-9,
-                 min_similarity_for_recombination: float = 0.7,
+                 min_similarity_for_recombination: float = 0.85,  # 修正：更严格的重组相似度要求
                  
                  # 基因丢失参数
                  enable_gene_loss: bool = True,
@@ -146,10 +146,11 @@ class UnifiedEvolutionEngine:
         # 2. 横向基因转移
         self.hgt = HorizontalGeneTransfer(self.config['hgt_rate'])
         
-        # 3. 同源重组
+        # 3. 同源重组（新设计：多点突变模式）
         self.recombination = HomologousRecombination(
-            self.config['recombination_rate'],
-            self.config['min_similarity_for_recombination']
+            recombination_rate=self.config['recombination_rate'],
+            mutations_per_event=self.config.get('mutations_per_recombination_event', (5, 15)),
+            enable_debug=self.config.get('recombination_debug', False)
         )
         
         # 4. 基因丢失（可选）
@@ -322,6 +323,11 @@ class UnifiedEvolutionEngine:
             generation_stats['total_mutations'] += chunk_stats['mutations']
             generation_stats['total_hgt_events'] += chunk_stats['hgt_events']
             generation_stats['total_recombination_events'] += chunk_stats['recombination_events']
+        
+        # 修复：为了兼容性，同时设置两种键名
+        generation_stats['mutations'] = generation_stats['total_mutations']
+        generation_stats['hgt_events'] = generation_stats['total_hgt_events']
+        generation_stats['recombination_events'] = generation_stats['total_recombination_events']
         
         # 更新基因组
         genome.genes = evolved_genes
@@ -636,8 +642,9 @@ def init_parallel_worker(evolution_params: Dict):
         hgt = HorizontalGeneTransfer(evolution_params['hgt_rate'])
         
         recombination = HomologousRecombination(
-            evolution_params['recombination_rate'],
-            evolution_params['min_similarity_for_recombination']
+            recombination_rate=evolution_params['recombination_rate'],
+            mutations_per_event=evolution_params.get('mutations_per_recombination_event', (5, 15)),
+            enable_debug=False  # 在并行模式下关闭调试以避免输出混乱
         )
         
         _worker_engines = {

@@ -140,7 +140,7 @@ class OptimizedParallelEvolutionEngine:
                  mutation_rate: float = 1e-6,
                  hgt_rate: float = 1e-8,
                  recombination_rate: float = 1e-9,
-                 min_similarity_for_recombination: float = 0.7,
+                 min_similarity_for_recombination: float = 0.85,  # 修正：更严格的重组相似度要求
                  
                  # 基因丢失参数
                  enable_gene_loss: bool = True,

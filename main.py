@@ -36,7 +36,7 @@ def run_basic_simulation():
     engine = UnifiedEvolutionEngine(
         # 基本进化参数
         mutation_rate=1e-5,
-        hgt_rate=0.01,
+        hgt_rate=1e-5,  # 修正：更符合生物学实际的HGT频率
         recombination_rate=1e-3,
         
         # 基因丢失参数

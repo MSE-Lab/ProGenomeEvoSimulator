@@ -30,9 +30,9 @@ def demo_basic_evolution():
     
     # 创建基础引擎
     engine = UnifiedEvolutionEngine(
-        mutation_rate=1e-3,
-        hgt_rate=0.02,
-        recombination_rate=1e-2,
+        mutation_rate=1e-5,  # 修正：更现实的突变率
+        hgt_rate=1e-5,       # 修正：更现实的HGT率
+        recombination_rate=1e-3,  # 修正：更现实的重组率
         enable_gene_loss=False,
         enable_parallel=False
     )
@@ -74,9 +74,9 @@ def demo_gene_loss():
     
     # 创建带基因丢失的引擎
     engine = UnifiedEvolutionEngine(
-        mutation_rate=1e-3,
-        hgt_rate=0.03,
-        recombination_rate=1e-2,
+        mutation_rate=1e-5,  # 修正：更现实的突变率
+        hgt_rate=1e-5,       # 修正：更现实的HGT率
+        recombination_rate=1e-3,  # 修正：更现实的重组率
         enable_gene_loss=True,
         loss_rate=0.005,  # 较高的丢失率以便观察
         core_gene_protection=0.9,
@@ -136,8 +136,8 @@ def demo_parallel_processing():
     # 串行处理测试
     serial_genome = genome.copy()
     serial_engine = UnifiedEvolutionEngine(
-        mutation_rate=1e-3,
-        hgt_rate=0.01,
+        mutation_rate=1e-5,  # 修正：更现实的突变率
+        hgt_rate=1e-5,       # 修正：更现实的HGT率
         enable_parallel=False,
         enable_optimization=True
     )
@@ -150,8 +150,8 @@ def demo_parallel_processing():
     # 并行处理测试
     parallel_genome = genome.copy()
     parallel_engine = UnifiedEvolutionEngine(
-        mutation_rate=1e-3,
-        hgt_rate=0.01,
+        mutation_rate=1e-5,  # 修正：更现实的突变率
+        hgt_rate=1e-5,       # 修正：更现实的HGT率
         enable_parallel=True,
         enable_optimization=True
     )
@@ -196,9 +196,9 @@ def demo_complete_simulation():
     
     # 创建全功能引擎
     engine = UnifiedEvolutionEngine(
-        mutation_rate=1e-4,
-        hgt_rate=0.02,
-        recombination_rate=1e-2,
+        mutation_rate=1e-5,  # 修正：更现实的突变率
+        hgt_rate=1e-5,       # 修正：更现实的HGT率
+        recombination_rate=1e-3,  # 修正：更现实的重组率
         enable_gene_loss=True,
         loss_rate=1e-4,
         core_gene_protection=0.95,

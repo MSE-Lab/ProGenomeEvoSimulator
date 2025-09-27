@@ -63,8 +63,8 @@ def create_test_configurations() -> Dict[str, Dict[str, any]]:
                 'enable_parallel': True,
                 'enable_optimization': True
             },
-            'genome': {'gene_count': 1000, 'avg_gene_length': 500},
-            'generations': 50
+            'genome': {'gene_count': 500, 'avg_gene_length': 1000},
+            'generations': 100
         },
         
         'realistic': {
@@ -370,8 +370,8 @@ def interactive_menu():
                     mutation_rate = input("Mutation rate (default: 1e-5): ").strip()
                     custom_config['params']['mutation_rate'] = float(mutation_rate) if mutation_rate else 1e-5
                     
-                    hgt_rate = input("HGT rate (default: 0.01): ").strip()
-                    custom_config['params']['hgt_rate'] = float(hgt_rate) if hgt_rate else 0.01
+                    hgt_rate = input("HGT rate (default: 1e-5): ").strip()
+                    custom_config['params']['hgt_rate'] = float(hgt_rate) if hgt_rate else 1e-5
                     
                     recombination_rate = input("Recombination rate (default: 1e-3): ").strip()
                     custom_config['params']['recombination_rate'] = float(recombination_rate) if recombination_rate else 1e-3

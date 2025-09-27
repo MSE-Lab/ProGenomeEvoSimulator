@@ -6,7 +6,7 @@ from core.genome import Genome, Gene, generate_random_sequence
 class HorizontalGeneTransfer:
     """横向基因转移引擎"""
     
-    def __init__(self, hgt_rate: float = 0.001, gene_pool_size: int = 10000):
+    def __init__(self, hgt_rate: float = 1e-5, gene_pool_size: int = 10000):  # 修正：更现实的HGT率
         self.hgt_rate = hgt_rate  # 每代每基因组的HGT概率
         self.gene_pool_size = gene_pool_size
         self.external_gene_pool = self._create_gene_pool()
