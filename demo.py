@@ -34,13 +34,13 @@ def run_demo():
     # 2. Set evolution parameters (increased rates for observable effects)
     print("2. Setting evolution parameters...")
     evolution_engine = OptimizedEvolutionEngine(
-        mutation_rate=1e-6,      # increased mutation rate
+        mutation_rate=1e-5,      # increased mutation rate
         hgt_rate=0.01,          # increased HGT rate
-        recombination_rate=1e-4  # increased recombination rate
+        recombination_rate=1e-3  # increased recombination rate
     )
-    print("   ✓ Point mutation rate: 1e-6 (per bp per generation) - OPTIMIZED")
+    print("   ✓ Point mutation rate: 1e-5 (per bp per generation) - OPTIMIZED")
     print("   ✓ HGT rate: 0.01 (per genome per generation)")
-    print("   ✓ Recombination rate: 1e-4 (per bp per generation)")
+    print("   ✓ Recombination rate: 1e-3 (per bp per generation)")
     print()
     
     # 3. Run evolution simulation (fewer generations)
@@ -48,7 +48,7 @@ def run_demo():
     print("   This will show detailed progress tracking...")
     evolved_genome, snapshots = evolution_engine.simulate_evolution(
         initial_genome=initial_genome,
-        generations=50,
+        generations=100,
         save_snapshots=True,
         snapshot_interval=10
     )

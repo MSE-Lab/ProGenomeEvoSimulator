@@ -7,7 +7,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from core.genome import create_initial_genome
-from core.evolution_engine import EvolutionEngine
+from core.evolution_engine_with_conservation import OptimizedEvolutionEngine
 from analysis.ani_calculator import ANICalculator
 
 def run_evolution_simulation(generations: int = 1000,
@@ -34,7 +34,7 @@ def run_evolution_simulation(generations: int = 1000,
     
     # 2. Initialize evolution engine
     print("2. Initializing evolution engine...")
-    evolution_engine = EvolutionEngine(
+    evolution_engine = OptimizedEvolutionEngine(
         mutation_rate=mutation_rate,
         hgt_rate=hgt_rate,
         recombination_rate=recombination_rate
@@ -199,11 +199,11 @@ def main():
     
     # Run simulation
     initial_genome, evolved_genome, analysis, snapshots = run_evolution_simulation(
-        generations=1000,           # Evolution generations
+        generations=100,           # Evolution generations
         initial_gene_count=3000,    # Initial gene count
-        mutation_rate=1e-8,         # Point mutation rate (slightly increased for observable effects)
-        hgt_rate=0.002,            # HGT rate (slightly increased for observable effects)
-        recombination_rate=1e-5     # Recombination rate (slightly increased for observable effects)
+        mutation_rate=1e-5,         # Point mutation rate (slightly increased for observable effects)
+        hgt_rate=0.02,            # HGT rate (slightly increased for observable effects)
+        recombination_rate=1e-3     # Recombination rate (slightly increased for observable effects)
     )
     
     print("\nSimulation completed!")
