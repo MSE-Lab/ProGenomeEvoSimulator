@@ -186,19 +186,24 @@ class UnifiedEvolutionEngine:
                 self.config['num_processes'] > 1)
     
     def _calculate_optimal_chunk_size(self, total_genes: int) -> int:
-        """计算最优的基因分块大小"""
+        """
+        计算最优的基因分块大小
+        优化策略：减少分块数量，增加每块大小以减少通信开销
+        """
         if self.config['chunk_size']:
             return self.config['chunk_size']
         
-        # 自动计算最优分块大小
-        base_chunk_size = max(1, total_genes // (self.config['num_processes'] * 4))
+        num_processes = self.config['num_processes']
         
-        if total_genes < 100:
-            return max(1, total_genes // self.config['num_processes'])
-        elif total_genes < 1000:
-            return min(50, base_chunk_size)
+        # 目标：每个进程处理1-2个大块，而不是很多小块
+        min_chunk_size = max(200, total_genes // (num_processes * 2))
+        max_chunk_size = max(500, total_genes // num_processes)
+        
+        # 确保分块大小合理
+        if total_genes < 1000:
+            return max(100, total_genes // num_processes)
         else:
-            return min(200, base_chunk_size)
+            return min(max_chunk_size, max(min_chunk_size, 300))
     
     def _split_genes_into_chunks(self, genes: List[Gene]) -> List[List[Gene]]:
         """将基因列表分割成适合并行处理的块"""
@@ -248,21 +253,33 @@ class UnifiedEvolutionEngine:
         
         return generation_stats
     
+    def _get_or_create_process_pool(self):
+        """获取或创建进程池（重用以提高性能）"""
+        if not hasattr(self, '_process_pool') or self._process_pool is None:
+            # 准备进化参数
+            evolution_params = {
+                'mutation_rate': self.config['mutation_rate'],
+                'hgt_rate': self.config['hgt_rate'],
+                'recombination_rate': self.config['recombination_rate'],
+                'min_similarity_for_recombination': self.config['min_similarity_for_recombination'],
+                'enable_transition_bias': True,
+                'enable_hotspots': True
+            }
+            
+            # 创建进程池并初始化工作进程
+            self._process_pool = Pool(
+                processes=self.config['num_processes'],
+                initializer=init_parallel_worker,
+                initargs=(evolution_params,)
+            )
+        
+        return self._process_pool
+    
     def evolve_one_generation_parallel(self, genome: Genome) -> Dict:
-        """并行进化一代"""
+        """优化的并行进化一代"""
         generation_start_time = time.time()
         
-        # 准备进化参数
-        evolution_params = {
-            'mutation_rate': self.config['mutation_rate'],
-            'hgt_rate': self.config['hgt_rate'],
-            'recombination_rate': self.config['recombination_rate'],
-            'min_similarity_for_recombination': self.config['min_similarity_for_recombination'],
-            'enable_transition_bias': True,
-            'enable_hotspots': True
-        }
-        
-        # 分割基因到不同的块
+        # 使用优化的分块策略
         gene_chunks = self._split_genes_into_chunks(genome.genes)
         
         generation_stats = {
@@ -273,33 +290,27 @@ class UnifiedEvolutionEngine:
             'total_recombination_events': 0,
             'genes_lost': 0,
             'chunks_processed': len(gene_chunks),
+            'chunk_size': self._calculate_optimal_chunk_size(genome.gene_count),
             'parallel_processing_time': 0,
-            'processing_mode': 'parallel'
+            'processing_mode': 'optimized_parallel'
         }
-        
-        # 设置共享进度计数器
-        if self.config['enable_progress_sharing']:
-            manager = Manager()
-            shared_progress = manager.Value('i', 0)
-        else:
-            shared_progress = None
         
         parallel_start_time = time.time()
         
-        # 并行处理所有基因块
-        with Pool(processes=self.config['num_processes']) as pool:
-            # 创建部分函数
-            process_func = partial(
-                evolve_genes_chunk_worker,
-                evolution_params=evolution_params,
-                shared_progress=shared_progress
-            )
+        # 获取或创建进程池
+        try:
+            pool = self._get_or_create_process_pool()
             
-            # 为每个块添加进程ID
+            # 准备任务数据（移除共享进度以减少锁竞争）
             chunk_args = [(chunk, i) for i, chunk in enumerate(gene_chunks)]
             
             # 并行执行
-            results = pool.map(process_func, chunk_args)
+            results = pool.map(evolve_genes_chunk_worker, chunk_args)
+            
+        except Exception as e:
+            print(f"❌ Parallel execution failed: {e}")
+            # 回退到串行处理
+            return self.evolve_one_generation_serial(genome)
         
         parallel_end_time = time.time()
         generation_stats['parallel_processing_time'] = parallel_end_time - parallel_start_time
@@ -318,7 +329,7 @@ class UnifiedEvolutionEngine:
         genome.total_hgt_events += generation_stats['total_hgt_events']
         genome.total_recombination_events += generation_stats['total_recombination_events']
         
-        # 应用基因丢失（在主进程中处理，避免并行复杂性）
+        # 应用基因丢失（在主进程中处理）
         if self.gene_loss:
             genes_lost = self.gene_loss.apply_gene_loss(genome, generations=1)
             generation_stats['genes_lost'] = genes_lost
@@ -571,39 +582,101 @@ class UnifiedEvolutionEngine:
         
         return analysis
     
+    def cleanup_parallel_resources(self):
+        """清理并行资源"""
+        if hasattr(self, '_process_pool') and self._process_pool is not None:
+            self._process_pool.close()
+            self._process_pool.join()
+            self._process_pool = None
+            print("🧹 Parallel process pool cleaned up")
+    
     def clear_caches(self):
         """清理所有缓存"""
         if hasattr(self.point_mutation, 'clear_cache'):
             self.point_mutation.clear_cache()
+        self.cleanup_parallel_resources()
         print("🧹 Caches cleared for memory optimization")
+    
+    def __del__(self):
+        """析构函数 - 确保资源清理"""
+        try:
+            self.cleanup_parallel_resources()
+        except:
+            pass  # 忽略析构时的错误
+
+
+# 全局工作进程状态 - 避免重复初始化
+_worker_initialized = False
+_worker_engines = None
+
+
+def init_parallel_worker(evolution_params: Dict):
+    """
+    工作进程初始化函数 - 只在进程启动时调用一次
+    避免每次任务都重新创建进化机制实例
+    """
+    global _worker_initialized, _worker_engines
+    
+    if _worker_initialized:
+        return
+    
+    try:
+        # 导入必要的模块
+        from mechanisms.point_mutation_optimized import OptimizedPointMutationEngine
+        from mechanisms.horizontal_transfer import HorizontalGeneTransfer
+        from mechanisms.homologous_recombination import HomologousRecombination
+        
+        # 创建进化机制实例（每个进程只创建一次）
+        point_mutation = OptimizedPointMutationEngine(
+            mutation_rate=evolution_params['mutation_rate'],
+            enable_transition_bias=evolution_params.get('enable_transition_bias', True),
+            enable_hotspots=evolution_params.get('enable_hotspots', True)
+        )
+        
+        hgt = HorizontalGeneTransfer(evolution_params['hgt_rate'])
+        
+        recombination = HomologousRecombination(
+            evolution_params['recombination_rate'],
+            evolution_params['min_similarity_for_recombination']
+        )
+        
+        _worker_engines = {
+            'point_mutation': point_mutation,
+            'hgt': hgt,
+            'recombination': recombination
+        }
+        
+        _worker_initialized = True
+        
+    except Exception as e:
+        print(f"❌ Worker initialization failed: {e}")
+        _worker_initialized = False
+        _worker_engines = None
 
 
 def evolve_genes_chunk_worker(chunk_args: Tuple[List[Gene], int], 
-                            evolution_params: Dict,
+                            evolution_params: Dict = None,
                             shared_progress: Optional[Any] = None) -> Tuple[List[Gene], Dict]:
     """
-    工作进程函数：处理基因块的进化
+    优化的工作进程函数：处理基因块的进化
+    使用预初始化的进化机制实例，减少创建开销
     """
+    global _worker_engines
+    
     genes_chunk, process_id = chunk_args
     
-    # 直接在工作进程中处理
-    from mechanisms.point_mutation_optimized import OptimizedPointMutationEngine
-    from mechanisms.horizontal_transfer import HorizontalGeneTransfer
-    from mechanisms.homologous_recombination import HomologousRecombination
-    from core.genome import Genome
-    
-    # 创建本地进化机制实例
-    point_mutation = OptimizedPointMutationEngine(
-        mutation_rate=evolution_params['mutation_rate'],
-        enable_transition_bias=evolution_params.get('enable_transition_bias', True),
-        enable_hotspots=evolution_params.get('enable_hotspots', True)
-    )
-    
-    hgt = HorizontalGeneTransfer(evolution_params['hgt_rate'])
-    recombination = HomologousRecombination(
-        evolution_params['recombination_rate'],
-        evolution_params['min_similarity_for_recombination']
-    )
+    # 检查工作进程是否正确初始化
+    if not _worker_engines:
+        # 如果工作进程未正确初始化，返回原始基因
+        return genes_chunk, {
+            'process_id': process_id,
+            'genes_processed': len(genes_chunk),
+            'mutations': 0,
+            'hgt_events': 0,
+            'recombination_events': 0,
+            'processing_time': 0,
+            'error': 'Worker not initialized'
+        }
     
     # 统计信息
     chunk_stats = {
@@ -618,35 +691,40 @@ def evolve_genes_chunk_worker(chunk_args: Tuple[List[Gene], int],
     import time
     start_time = time.time()
     
-    # 创建临时基因组用于处理这个块
-    temp_genome = Genome(genes_chunk)
-    
-    # 应用进化机制
     try:
-        # 点突变
-        mutations = point_mutation.apply_mutations(temp_genome, generations=1)
+        # 创建临时基因组用于处理这个块
+        from core.genome import Genome
+        temp_genome = Genome(genes_chunk)
+        
+        # 使用预初始化的进化机制
+        engines = _worker_engines
+        
+        # 应用进化机制
+        mutations = engines['point_mutation'].apply_mutations(temp_genome, generations=1)
         chunk_stats['mutations'] = mutations
         
-        # HGT
-        hgt_events = hgt.apply_hgt(temp_genome, generations=1)
+        hgt_events = engines['hgt'].apply_hgt(temp_genome, generations=1)
         chunk_stats['hgt_events'] = hgt_events
         
-        # 同源重组
-        recombination_events = recombination.apply_recombination(temp_genome, generations=1)
+        recombination_events = engines['recombination'].apply_recombination(temp_genome, generations=1)
         chunk_stats['recombination_events'] = recombination_events
+        
+        # 返回进化后的基因
+        evolved_genes = temp_genome.genes
         
     except Exception as e:
         print(f"❌ Error in process {process_id}: {e}")
         chunk_stats['error'] = str(e)
+        evolved_genes = genes_chunk  # 返回原始基因
     
     chunk_stats['processing_time'] = time.time() - start_time
     
-    # 更新共享进度计数器
-    if shared_progress is not None:
-        try:
-            with shared_progress.get_lock():
-                shared_progress.value += len(genes_chunk)
-        except:
-            pass  # 忽略共享进度更新错误
+    # 移除共享进度更新以减少锁竞争
+    # if shared_progress is not None:
+    #     try:
+    #         with shared_progress.get_lock():
+    #             shared_progress.value += len(genes_chunk)
+    #     except:
+    #         pass
     
-    return temp_genome.genes, chunk_stats
+    return evolved_genes, chunk_stats

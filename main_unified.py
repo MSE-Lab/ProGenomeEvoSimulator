@@ -34,7 +34,13 @@ except ImportError as e:
 try:
     from core.visualization import EvolutionVisualizer, create_comprehensive_visualization
     visualization_available = True
-    print("📊 Unified visualization system loaded (server-friendly)")
+    # 只在主进程中打印加载信息，避免并行进程重复输出
+    import multiprocessing as mp
+    try:
+        if mp.current_process().name == 'MainProcess':
+            print("📊 Unified visualization system loaded (server-friendly)")
+    except:
+        pass
 except ImportError:
     visualization_available = False
     create_comprehensive_visualization = None

@@ -2,6 +2,7 @@
 """
 统一可视化模块 - 服务器友好的图表生成
 支持无图形界面环境，自动保存图表到文件
+修改版：删除Conservation Categories子图和第二排中间的子图
 """
 
 import os
@@ -400,6 +401,7 @@ class EvolutionVisualizer:
     def create_ani_identity_analysis(self, initial_genome, final_genome, filename: str = None) -> str:
         """
         创建ANI和同源基因identity分布分析图表
+        修改版：删除Conservation Categories子图和第二排中间的子图，使用2x2布局
         
         Args:
             initial_genome: 初始基因组
@@ -443,9 +445,9 @@ class EvolutionVisualizer:
                 print(f"⚠️  Conservation analysis failed: {cons_error}")
                 conservation_result = {}
             
-            # 创建图表
-            fig = plt.figure(figsize=VISUALIZATION_CONFIG['figsize_large'])
-            gs = GridSpec(2, 3, figure=fig, hspace=0.3, wspace=0.3)
+            # 创建图表 - 使用2x2布局
+            fig = plt.figure(figsize=VISUALIZATION_CONFIG['figsize_medium'])
+            gs = GridSpec(2, 2, figure=fig, hspace=0.3, wspace=0.3)
             
             # 主标题
             fig.suptitle('ANI and Homologous Gene Identity Analysis', 
@@ -501,80 +503,30 @@ class EvolutionVisualizer:
             ax2.axis('off')
             ax2.set_title('ANI Statistics Summary')
             
-            # 3. 保守性分类饼图
-            ax3 = fig.add_subplot(gs[0, 2])
-            if 'conservation_results' in conservation_result:
-                conservation_categories = {}
-                for result in conservation_result['conservation_results']:
-                    category = result.conservation_category
-                    conservation_categories[category] = conservation_categories.get(category, 0) + 1
-                
-                if conservation_categories:
-                    labels = list(conservation_categories.keys())
-                    sizes = list(conservation_categories.values())
-                    colors = ['lightgreen', 'yellow', 'orange', 'red'][:len(labels)]
-                    
-                    ax3.pie(sizes, labels=labels, autopct='%1.1f%%', 
-                           colors=colors, startangle=90)
-                    ax3.set_title('Conservation Categories')
-                else:
-                    ax3.text(0.5, 0.5, 'No conservation\ndata available', 
-                            ha='center', va='center', transform=ax3.transAxes)
-                    ax3.set_title('Conservation Categories')
-            
-            # 4. Identity vs 基因长度散点图
-            ax4 = fig.add_subplot(gs[1, 0])
+            # 3. Identity vs 基因长度散点图
+            ax3 = fig.add_subplot(gs[1, 0])
             if identities and 'alignment_lengths' in ani_result:
                 lengths = ani_result['alignment_lengths']
-                ax4.scatter(lengths, identities, alpha=0.6, s=30, color='blue')
-                ax4.set_xlabel('Alignment Length (bp)')
-                ax4.set_ylabel('Sequence Identity')
-                ax4.set_title('Identity vs Alignment Length')
-                ax4.grid(True, alpha=0.3)
+                ax3.scatter(lengths, identities, alpha=0.6, s=30, color='blue')
+                ax3.set_xlabel('Alignment Length (bp)')
+                ax3.set_ylabel('Sequence Identity')
+                ax3.set_title('Identity vs Alignment Length')
+                ax3.grid(True, alpha=0.3)
                 
                 # 添加趋势线
                 if len(lengths) > 1:
                     z = np.polyfit(lengths, identities, 1)
                     p = np.poly1d(z)
-                    ax4.plot(lengths, p(lengths), "r--", alpha=0.8, 
+                    ax3.plot(lengths, p(lengths), "r--", alpha=0.8, 
                             label=f'Trend: y={z[0]:.2e}x+{z[1]:.3f}')
-                    ax4.legend()
+                    ax3.legend()
             else:
-                ax4.text(0.5, 0.5, 'Insufficient data\nfor scatter plot', 
-                        ha='center', va='center', transform=ax4.transAxes)
-                ax4.set_title('Identity vs Alignment Length')
+                ax3.text(0.5, 0.5, 'Insufficient data\nfor scatter plot', 
+                        ha='center', va='center', transform=ax3.transAxes)
+                ax3.set_title('Identity vs Alignment Length')
             
-            # 5. 基因类型保守性比较
-            ax5 = fig.add_subplot(gs[1, 1])
-            if 'gene_type_analysis' in conservation_result:
-                gene_type_data = conservation_result['gene_type_analysis']
-                categories = []
-                mean_identities = []
-                
-                for gene_type, data in gene_type_data.items():
-                    if data['count'] > 0:
-                        categories.append(gene_type.replace('_', ' ').title())
-                        mean_identities.append(data['mean_identity'])
-                
-                if categories:
-                    bars = ax5.bar(categories, mean_identities, 
-                                  color=['lightcoral', 'lightblue', 'lightgreen', 'lightyellow'][:len(categories)],
-                                  edgecolor='black', alpha=0.7)
-                    ax5.set_ylabel('Mean Identity')
-                    ax5.set_title('Conservation by Gene Type')
-                    ax5.tick_params(axis='x', rotation=45)
-                    
-                    # 添加数值标签
-                    for bar, value in zip(bars, mean_identities):
-                        ax5.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
-                                f'{value:.3f}', ha='center', va='bottom', fontsize=10)
-                else:
-                    ax5.text(0.5, 0.5, 'No gene type\ndata available', 
-                            ha='center', va='center', transform=ax5.transAxes)
-                    ax5.set_title('Conservation by Gene Type')
-            
-            # 6. Identity分布箱线图
-            ax6 = fig.add_subplot(gs[1, 2])
+            # 4. Identity分布箱线图
+            ax4 = fig.add_subplot(gs[1, 1])
             if identities:
                 box_data = [identities]
                 labels = ['All Orthologs']
@@ -589,25 +541,26 @@ class EvolutionVisualizer:
                             short_label = gene_type.replace('_', ' ').title()[:10]
                             labels.append(short_label)
                 
-                bp = ax6.boxplot(box_data, labels=labels, patch_artist=True)
+                bp = ax4.boxplot(box_data, patch_artist=True)
                 
                 # 设置颜色
                 colors = ['lightblue', 'lightcoral', 'lightgreen', 'lightyellow']
                 for patch, color in zip(bp['boxes'], colors[:len(bp['boxes'])]):
                     patch.set_facecolor(color)
                 
-                ax6.set_ylabel('Sequence Identity')
-                ax6.set_title('Identity Distribution by Category')
-                # 调整x轴标签角度和字体大小
-                ax6.tick_params(axis='x', rotation=30, labelsize=9)
-                ax6.grid(True, alpha=0.3)
+                ax4.set_ylabel('Sequence Identity')
+                ax4.set_title('Identity Distribution by Category')
+                # 设置x轴标签
+                ax4.set_xticklabels(labels, rotation=30, fontsize=9)
+                ax4.grid(True, alpha=0.3)
             else:
-                ax6.text(0.5, 0.5, 'No identity data\navailable', 
-                        ha='center', va='center', transform=ax6.transAxes)
-                ax6.set_title('Identity Distribution by Category')
+                ax4.text(0.5, 0.5, 'No identity data\navailable', 
+                        ha='center', va='center', transform=ax4.transAxes)
+                ax4.set_title('Identity Distribution by Category')
             
-            # 使用更宽松的布局参数
-            plt.tight_layout(pad=2.0, h_pad=2.0, w_pad=2.0)
+            # 使用subplots_adjust替代tight_layout以避免警告
+            plt.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1, 
+                              hspace=0.4, wspace=0.3)
             
             # 保存图表
             if self.auto_save:
@@ -773,6 +726,15 @@ def test_visualization():
     for file in files:
         print(f"   📊 {file}")
 
+
+# 只在主进程中打印加载信息，避免并行进程重复输出
+import multiprocessing as mp
+try:
+    if mp.current_process().name == 'MainProcess':
+        print("📊 Unified visualization system loaded (server-friendly)")
+except:
+    # 在某些情况下 current_process() 可能不可用，静默处理
+    pass
 
 if __name__ == "__main__":
     test_visualization()
