@@ -57,14 +57,15 @@ def create_test_configurations() -> Dict[str, Dict[str, Any]]:
         
         'realistic': {
             'description': '真实参数配置 - 基于文献的生物学参数',
-            'generations': 1000,
+            'generations': 10000,
             'initial_genes': 3000,
             'snapshot_interval': 100,
             'engine_config': {
-                'mutation_rate': 1e-9,
+                'mutation_rate': 1e-8,
                 'hgt_rate': 1e-6,
                 'recombination_rate': 1e-8,
-                'min_similarity_for_recombination': 0.85,
+                'mutations_per_recombination_event': (5, 30),  # 每次重组的突变数量
+                'recombination_debug': False,  # 启用重组调试
                 'enable_gene_loss': True,
                 'loss_rate': 1e-8,
                 'core_gene_protection': 0.98,
