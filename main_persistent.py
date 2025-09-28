@@ -253,9 +253,9 @@ def run_persistent_simulation(config_name: str = 'fast_test',
                 
                 # 准备基因组列表进行ANI分析
                 genomes_for_ani = [initial_genome, final_genome]
-                if snapshots:
-                    # 添加一些快照基因组用于ANI分析
-                    genomes_for_ani.extend(snapshots[-3:])  # 添加最后3个快照
+                # if snapshots:
+                #     # 添加一些快照基因组用于ANI分析
+                #     genomes_for_ani.extend(snapshots[-3:])  # 添加最后3个快照
                 
                 ani_data = data_analyzer.calculate_ani_matrix(genomes_for_ani)
                 print("✅ ANI analysis completed")
